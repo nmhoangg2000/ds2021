@@ -1,0 +1,230 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=C,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+\title{Distributed System - Lab 2}
+
+\begin{document}
+
+\maketitle
+\section{MPI implementation}
+I choose Openmpi and its utility for designing my system - its popular, has wide support community and can be easily install by Homebrew
+
+\section{MPI service design}
++-------------------------------------------------+
+|                                                 |
+|NFS Sharing Folder                               |
+|                                                 |
+|  +---------------+             +-------------+  |
+|  |Pro in M.A     |             |Pro in M.B   |  |
+|  |               |             |             |  |
+|  |               |             |             |  |
+|  |  +--------+   |             | +--------+  |  |
+|  |  |        |   |             | |        |  |  |
+|  |  |Machine |   |   SSH       | |Machine |  |  |
+|  |  |A       |   +------------>+ |B       |  |  |
+|  |  |File    |   | Connection  | |File    |  |  |
+|  |  |Open    |   +<------------+ |Open    |  |  |
+|  |  |        |   |             | |        |  |  |
+|  |  |        |   |             | |        |  |  |
+|  |  +--------+   |             | +--------+  |  |
+|  |               |             |             |  |
+|  |               |             |             |  |
+|  +---------------+             +-------------+  |
+|                                                 |
++-------------------------------------------------+
+
+
+\section{System organization}
+         +----------+                                       +----------+
+         |          |                                       |          |
+         | Open File|                                       | Open File|
+         +----+-----+                                       +--+-------+
+              |                                                |
++---------------------------------+                            |
+| Loop:       |                   |                  +---------------------------------+
+|             v                   |                  |         v                       |
+|  +----------++    +----------+  |     Data         | +-------+--+   +------------+   |
+|  | Read      +----> Send     +---------------------> | Recv     |   |  Write     |   |
+|  |           |    |          |  |                  | |          +-->+            |   |
+|  +-----^-----+    +----+-----+  |                  | +----+-----+   +-----+------+   |
+|        |               |        |                  |      ^               |          |
+|        |               |        |                  | +----+-----+         |          |
+|        |          +----v-----+  |    SIGNAL        | |Confirm   |         |          |
+|        |          | Confirm  | <---------------------+OR        |         |          |
+|        +----------+          |  |                  | |Error     +<--------+          |
+|                   +----------+  |                  | +----+-----+                    |
++---------------------------------+                  |      |                 Loop     |
+                         |                           +-+-------------------------------+
+                         v                             ^    |
+                    +----+-----+                       |    |
+                    | Send end +-----------------------+    |
+                    | SIGNAL   |                            |
+                    +----+-----+                            |
+                         |                                  v
+                         v                             +----+-----+
+                    +----+-----+                       | Stop     |
+                    | Stop     |                       |          |
+                    |          |                       +----------+
+                    +----------+
+
+\section{Implementation}
+We define two functions (fileSend, fileRecv) and call them in each process dependently. I assume process with rank 0 is client side and rank 1 is server side. 
+\subsection{Send file}
+\begin{lstlisting}
+void fileSend(FILE *fp, char *path, char *buff, int des_mpi, int tag_mpi){
+  // open file
+  fp = fopen(path, "rb");
+  
+  // trasnfer file
+  int n_byte; // number of reading file
+  if(fp != NULL){
+    while((n_byte = fread(&(buff[1]), 1, MAX - 1, fp)) != 0){
+      buff[0] = 1;
+      MPI_Send(buff, n_byte + 1, MPI_CHAR, des_mpi, tag_mpi, MPI_COMM_WORLD);
+
+      // check confirm response
+      MPI_Recv(buff, 1, MPI_CHAR, des_mpi, tag_mpi, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      if(buff[0] != 1){
+        printf("Process %d response error, we stop file transfer in middle\n", des_mpi);
+        break;
+      }
+      
+      // clean buffer
+      bzero(buff, MAX);
+    }
+  }
+
+  // send end transfer signal
+  buff[0] = 0;
+  MPI_Send(buff, 1, MPI_CHAR, des_mpi, tag_mpi, MPI_COMM_WORLD);
+
+  // close file
+  if(fp != NULL){
+    fclose(fp);
+  }
+}
+\end{lstlisting}
+
+\subsection{Receive file}
+\begin{lstlisting}
+void fileRecv(FILE *fp, char *path, char *buff, int src_mpi, int tag_mpi){
+  // open file
+  fp = fopen(path, "wb");
+
+  // receive data
+  MPI_Status status;
+  int n_byte;
+  while(1){
+    // get mpi status
+    MPI_Probe(src_mpi, tag_mpi, MPI_COMM_WORLD, &status);
+
+    // get number of transfer file
+    MPI_Get_count(&status, MPI_CHAR, &n_byte);
+
+    // get mpi message
+    MPI_Recv(buff, n_byte, MPI_CHAR, src_mpi, tag_mpi, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    
+    // close process if end signal sent
+    if(buff[0] == 0){
+      // close file
+      if(fp != NULL){
+        fclose(fp);
+      }
+      break;
+    }
+
+    // check for file open
+    if(fp == NULL){
+      // send error response to partner
+      buff[0] = 0;
+      MPI_Send(buff, 1, MPI_CHAR, src_mpi, tag_mpi, MPI_COMM_WORLD);
+    }
+    else{
+      // push data to file
+      fwrite(&(buff[1]), 1, MAX - 1, fp);
+
+      // send confirm response to partner
+      buff[0] = 1;
+      MPI_Send(buff, 1, MPI_CHAR, src_mpi, tag_mpi, MPI_COMM_WORLD);
+    }
+  }
+  
+}
+\end{lstlisting}
+
+\subsection{MPI implementation}
+\begin{lstlisting}
+int main(int argc, char *argv[]){
+  // Initialize mpi environment
+  MPI_Init(NULL, NULL);
+
+  // get mpi rank
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+  // File pointer and buffer
+  FILE *fp;
+  char buff[MAX]; // first byte is checksum byte
+  bzero(buff, MAX);
+
+  if(world_rank == 0){
+    // this is client side
+    if(strcmp(argv[TYPE], "-u") == 0){
+      // send file
+      fileSend(fp, argv[SRC], buff, 1, 0);
+    }
+    else if(strcmp(argv[TYPE], "-d") == 0){
+      // recv file
+      fileRecv(fp, argv[SRC], buff, 1, 0);
+    }
+    else{
+      // do notthing
+    }
+
+    printf("Process %d is end\n", world_rank);
+  }
+  else if(world_rank == 1){
+    // this is server side
+    if(strcmp(argv[TYPE], "-u") == 0){
+      // recv file
+      fileRecv(fp, argv[DES], buff, 0, 0);
+    }
+    else if(strcmp(argv[TYPE], "-d") == 0){
+      // send file
+      fileSend(fp, argv[DES], buff, 0, 0);
+    }
+    else{
+      // do notthing
+    }
+    
+    printf("Process %d is end\n", world_rank);
+  }
+
+  // Finalize mpi
+  MPI_Finalize();
+}
+\end{lstlisting}
+\end{document}
