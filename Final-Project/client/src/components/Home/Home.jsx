@@ -1,36 +1,46 @@
-import React,  { useEffect } from 'react'
+import React,  { useEffect, useState } from 'react'
 import './Home.css'
 
 import { useSelector, useDispatch } from 'react-redux'
-import { addConnection } from '../../features/onlineUsers/onlineUsersSlice'
+import { addConnection, removeConnection } from '../../features/onlineUsers/onlineUsersSlice'
 
 import { getSession } from '../../session'
 import { peer, socket } from '../../App';
 import ChatZone from '../../chat'
+import ChatLog from './ChatLog'
 
 const Home = () => {
     const dispatch = useDispatch();
-    const chatZoneList = useSelector(state => state.onlineUsers)
-    console.log(chatZoneList)
-    const renderedchatZoneList = chatZoneList.map(chatZone => (
-        <li key={chatZone.connection.peer}>{chatZone.connection.peer}</li>
-      ))
+    const [peerName, setpeerName] = useState('')
     useEffect(() => {
         socket.on('joinServer', username => {  // New client connect to the network
             let conn = peer.connect(username) // Connect to new client via peerjs
             console.log(username)
+            console.log(conn)
             let chatZone = new ChatZone(conn);
             // console.log(chatZone)
             dispatch(addConnection(chatZone))
-            // conn.on('open', () => {
+            // conn.on('data', () => {
             //     conn.send("connected to" + username)
             // })
         })
         peer.on('connection', (conn) => {
             let chatZone = new ChatZone(conn);
+            // console.log('hi')
             dispatch(addConnection(chatZone))
           })
+        socket.on('leaveServer', (username) => {
+            console.log('leave ' + username)
+            dispatch(removeConnection(username))
+        })
     }, [])
+
+    const chatZoneList = useSelector(state => state.onlineUsers)
+    console.log(chatZoneList)
+    const renderChatZoneList = chatZoneList.map(chatZone => (
+        <li key={chatZone.connection.peer} onClick={() => setpeerName(chatZone.connection.peer)}>{chatZone.connection.peer}</li>
+    ))
+      
     return (
         <div className="chat-room-container">
             <div className="row">
@@ -38,26 +48,13 @@ const Home = () => {
                 <h1 className="online-name">Online: </h1>
                 <div className="online-container">
                     <ol className="online-list">
-                        {renderedchatZoneList}
+                        {renderChatZoneList}
                     </ol>
                 </div>
                 </div>
                 <div className="col-9">
                     <h1 className="room-name">Room: </h1>
-                    <div className="messages-container">
-                        <ol className="messages-list">
-                        
-                        </ol>
-                    </div>
-                    <div className="row">
-                        <textarea
-                            placeholder="Write message..."
-                            className="new-message-input-field"
-                        />
-                        <button className="send-message-button">
-                            Send
-                        </button>
-                    </div>
+                    <ChatLog username={peerName}/>
                 </div>
             </div>
         </div>

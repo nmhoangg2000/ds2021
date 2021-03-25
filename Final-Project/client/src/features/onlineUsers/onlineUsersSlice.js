@@ -6,10 +6,16 @@ export const onlineUsersSlice = createSlice({
   reducers: {
     addConnection: (state, action) => {
       state.push(action.payload)
+    },
+    removeConnection: (state, action) => {
+      state = state.filter(chatZone => chatZone.connection.peer != action.payload)
+    },
+    reset: (state) => {
+      state = []
     }
   }
 })
 
-export const { addConnection } = onlineUsersSlice.actions
+export const { addConnection, removeConnection, reset } = onlineUsersSlice.actions
 
 export default onlineUsersSlice.reducer

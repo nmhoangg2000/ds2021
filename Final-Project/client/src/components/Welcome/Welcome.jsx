@@ -1,10 +1,15 @@
 import React from 'react'
 import './Welcome.css'
 
+import { useDispatch } from 'react-redux'
 import { socket } from '../../App';
 import { setSession } from '../../session'
+import { reset } from '../../features/onlineUsers/onlineUsersSlice'
 
 const Welcome = () => {
+    // const dispatch = useDispatch()
+    // dispatch(reset()) 
+
     const Login = () => {
         // Handle User Input
         const username = document.getElementById('usernameInput').value;

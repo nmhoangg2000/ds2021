@@ -12,10 +12,12 @@ import {
 import storage from 'redux-persist/lib/storage'
 import { Iterable } from 'immutable'
 import onlineUsersReducer from '../features/onlineUsers/onlineUsersSlice'
+import messagesReducer from '../features/messages/messagesSlice'
 
 const Flatted = require('flatted');
 const rootReducer = combineReducers({
   onlineUsers: onlineUsersReducer,
+  messages: messagesReducer,
 })
 export const transformCircular = createTransform(
   (inboundState, key) => Flatted.stringify(inboundState),
@@ -48,8 +50,8 @@ const serializableMiddleware = createSerializableStateInvariantMiddleware({
     "persist/PERSIST", 
     "persist/PURGE", 
     "persist/REGISTER", 
-    "onlineUsers/addConnection",
     "redux-persist/createPersistoid",
+    "onlineUsers/addConnection",
   ],
 })
 
