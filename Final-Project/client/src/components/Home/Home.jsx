@@ -16,18 +16,18 @@ const Home = () => {
         socket.on('joinServer', username => {  // New client connect to the network
             let conn = peer.connect(username) // Connect to new client via peerjs
             console.log(username)
-            console.log(conn)
-            let chatZone = new ChatZone(conn);
+            // let chatZone = new ChatZone(conn);
             // console.log(chatZone)
-            dispatch(addConnection(chatZone))
-            // conn.on('data', () => {
-            //     conn.send("connected to" + username)
-            // })
+
+            dispatch(addConnection(new ChatZone(conn)))
+            conn.on('data', (message) => {
+                console.log("connect: " + message)
+            })
         })
         peer.on('connection', (conn) => {
             let chatZone = new ChatZone(conn);
             // console.log('hi')
-            dispatch(addConnection(chatZone))
+            dispatch(addConnection(new ChatZone(conn)))
           })
         socket.on('leaveServer', (username) => {
             console.log('leave ' + username)

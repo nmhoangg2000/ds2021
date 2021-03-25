@@ -3,6 +3,9 @@ class ChatZone{
       this.connection = connection;
       this.chatLog = [];
   }
+  test(){
+      console.log('test')
+  }
   sendMessage(message){
       this.connection.send(message);
       this.chatLog.push({message:message,owner:"self"});
