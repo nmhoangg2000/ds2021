@@ -36,7 +36,7 @@ const Home = () => {
             conn.on('data', (message) => {
                 // const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === conn.peer);
                 chatZone.addMessage(message);
-                console.log(message)
+                console.log(message) 
                 console.log(chatZone)
             })
         })
@@ -44,7 +44,7 @@ const Home = () => {
             // console.log('leave ' + username)
             dispatch(removeConnection(username))
         })
-    }, [chatZoneList])
+    }, [])
 
     console.log(chatZoneList)
     const renderChatZoneList = chatZoneList.map(chatZone => (
