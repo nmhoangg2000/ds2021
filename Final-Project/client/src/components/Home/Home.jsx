@@ -11,26 +11,40 @@ import ChatLog from './ChatLog'
 
 const Home = () => {
     const dispatch = useDispatch();
+    const chatZoneList = useSelector(state => state.onlineUsers)
     const [peerName, setpeerName] = useState('')
     useEffect(() => {
         socket.on('joinServer', username => {  // New client connect to the network
             let conn = peer.connect(username) // Connect to new client via peerjs
-            dispatch(addConnection(new ChatZone(conn)))
+            dispatch(addConnection(new ChatZone(conn)))            
+            conn.on('data', (message) => {
+                const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === username);
+                // chatZone.addMessage(message);
+                console.log(chatZoneList)
+
+                console.log(message)
+                console.log(chatZone) 
+            })
         })
         peer.on('connection', (conn) => {
             dispatch(addConnection(new ChatZone(conn)))
-            conn.on('data', (data) => {
-                console.log(data)
+            console.log(conn)
+            conn.on('data', (message) => {
+                const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === conn.peer);
+                // chatZone.addMessage(message);
+                console.log(conn.peer)
+                console.log(chatZoneList)
+                console.log(message)
+                console.log(chatZone)
             })
           })
         socket.on('leaveServer', (username) => {
             // console.log('leave ' + username)
             dispatch(removeConnection(username))
         })
-    }, [])
+    }, [chatZoneList])
 
-    const chatZoneList = useSelector(state => state.onlineUsers)
-    // console.log(chatZoneList)
+    console.log(chatZoneList)
     const renderChatZoneList = chatZoneList.map(chatZone => (
         <li key={chatZone.connection.peer} onClick={() => setpeerName(chatZone.connection.peer)}>{chatZone.connection.peer}</li>
     ))

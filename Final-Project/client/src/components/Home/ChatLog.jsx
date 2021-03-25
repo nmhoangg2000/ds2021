@@ -14,19 +14,14 @@ const ChatLog = props => {
   
   console.log(chatZone)
   useEffect(() => {
+    console.log(log)
     window.addEventListener("mousedown", handleSendMessage);
     return () => {
       window.removeEventListener("mousedown", handleSendMessage);
     }
-  }, [log])
-  console.log(chatZone)
-  let renderChatLog = ''
-  if (chatZone != undefined) {
-    renderChatLog = chatZone.chatLog.map(item => (
-      <li key={chatZone.connection.peer}>{item.owner}: {item.message}</li>
-    ))
-  } 
+  }, [log, chatZone])
 
+  // console.log(chatZone)
   const handleSendMessage = (e) => {
     const sendButton = document.getElementById('sendButton');
     console.log(chatZone)
@@ -34,13 +29,16 @@ const ChatLog = props => {
       const message = document.getElementById('messenger').value;
       document.getElementById('messenger').value = ''
       // console.log(chatZone)
-      chatZone.test();
       chatZone.sendMessage(message);
       setlog(chatZone.chatLog)
       // setlog(chatZone.chatLog)
-      console.log(chatZone.chatLog)
+      // console.log(chatZone.chatLog) 
     }
   }
+
+  const renderChatLog = log.map(item => (
+    <li key={chatZone.connection.peer}>{item.owner}: {item.message}</li>
+  ))
   
   return (
     <div className="chatlog-container">
