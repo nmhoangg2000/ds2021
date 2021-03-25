@@ -18,15 +18,15 @@ var OnlineUser = []
 const io = require('./socket').init(server);
 const User = require('./user');
 io.on('connection', socket => {
-    socket.on('join',username => {
+    socket.on('setUsername',username => {
         OnlineUser.push(new User(username,socket.id))
         console.log(OnlineUser);
-        setTimeout(() => socket.broadcast.emit("join_server",username),0);
+        setTimeout(() => socket.broadcast.emit("joinServer",username),0);
     });
     socket.on('disconnect', () => {
         let index = OnlineUser.findIndex(user => user.id == socket.id);
         if(index != -1){
-            socket.broadcast.emit("leave_server",OnlineUser[index].username);
+            socket.broadcast.emit("leaveServer",OnlineUser[index].username);
             OnlineUser.splice(index,1);
         }
     });
