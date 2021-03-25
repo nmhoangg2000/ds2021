@@ -16,24 +16,26 @@ const Home = () => {
     useEffect(() => {
         socket.on('joinServer', username => {  // New client connect to the network
             let conn = peer.connect(username) // Connect to new client via peerjs
-            dispatch(addConnection(new ChatZone(conn)))            
+            let chatZone = new ChatZone(conn)
+            console.log(chatZone)
+            dispatch(addConnection(chatZone)) 
+            console.log(chatZoneList)           
             conn.on('data', (message) => {
-                const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === username);
-                // chatZone.addMessage(message);
-                console.log(chatZoneList)
+                // const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === username);
+                chatZone.addMessage(message); 
 
                 console.log(message)
                 console.log(chatZone) 
             })
         })
         peer.on('connection', (conn) => {
-            dispatch(addConnection(new ChatZone(conn)))
-            console.log(conn)
+            let chatZone = new ChatZone(conn)
+            dispatch(addConnection(chatZone))
+            console.log(chatZone)
+            console.log(chatZoneList)
             conn.on('data', (message) => {
-                const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === conn.peer);
-                // chatZone.addMessage(message);
-                console.log(conn.peer)
-                console.log(chatZoneList)
+                // const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === conn.peer);
+                chatZone.addMessage(message);
                 console.log(message)
                 console.log(chatZone)
             })
