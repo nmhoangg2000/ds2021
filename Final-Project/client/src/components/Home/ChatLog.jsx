@@ -7,14 +7,20 @@ const ChatLog = props => {
   const dispatch = useDispatch();
   const chatZoneList = useSelector(state => state.onlineUsers)
   const [log, setlog] = useState([])
-  let chatZone = [];
-  if (props.username != undefined) {
-    chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === props.username);
-  } 
+  // let renderChatLog = '';
+  if (props.username) {
+    console.log('have')
+    var chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === props.username);
+    console.log(chatZone)
+  } else {
+    console.log('dhave')
+    var chatZone = {connection: {}, chatLog: []};
+  }
   
   console.log(chatZone)
   useEffect(() => {
     console.log(log)
+    console.log(chatZone)
     window.addEventListener("mousedown", handleSendMessage);
     return () => {
       window.removeEventListener("mousedown", handleSendMessage);
@@ -28,22 +34,39 @@ const ChatLog = props => {
     if (e.target == sendButton) {
       const message = document.getElementById('messenger').value;
       document.getElementById('messenger').value = ''
-      // console.log(chatZone)
+      console.log(chatZone)
       chatZone.sendMessage(message);
-      setlog(chatZone.chatLog)
-      // setlog(chatZone.chatLog)
-      // console.log(chatZone.chatLog) 
+      setlog(!log)
     }
+  } 
+  const renderChatLog = (chatZone) => {
+    let log = ''
+    console.log("RENDER")
+    if (chatZone.chatLog) {
+      chatZone.chatLog.map(item => {
+        if (item.owner === "self") {
+          log += `<li key=${chatZone.connection.peer} class="sender">${item.owner}: ${item.message}</li>`
+        } 
+        if (item.owner === "peer") {
+          log += `<li key=${chatZone.connection.peer} class="receiver">${item.owner}: ${item.message}</li>`
+        } 
+    }) 
   }
+  if (document.getElementById('chatLogList')) {
+    document.getElementById('chatLogList').innerHTML = log;
+  }
+}
 
-  const renderChatLog = log.map(item => (
-    <li key={chatZone.connection.peer}>{item.owner}: {item.message}</li>
-  ))
-  
-  return (
+  return ( 
     <div className="chatlog-container">
       <div className="messages-container">
-        {renderChatLog}
+      {(props.username) ? `Welcome to ${props.username} chat box` : ''}
+      <ul id="chatLogList">
+        {(chatZone) ? 
+          renderChatLog(chatZone)
+         : '' }
+      </ul>
+
       </div>
       <div className="row">
           <textarea
@@ -57,6 +80,6 @@ const ChatLog = props => {
       </div>
     </div>
   )
-}
+} 
 
 export default ChatLog

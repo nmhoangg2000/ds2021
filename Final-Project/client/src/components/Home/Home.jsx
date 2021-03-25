@@ -39,7 +39,7 @@ const Home = () => {
                 console.log(message)
                 console.log(chatZone)
             })
-          })
+        })
         socket.on('leaveServer', (username) => {
             // console.log('leave ' + username)
             dispatch(removeConnection(username))

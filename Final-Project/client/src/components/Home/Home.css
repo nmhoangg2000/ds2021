@@ -88,3 +88,15 @@
 .row{
     padding: 15px
 }
+
+#chatLogList {
+    list-style: none;
+}
+.sender {
+    color: red;
+    text-align: right;
+}
+.receiver {
+    color: blue;
+    text-align: left;
+}
