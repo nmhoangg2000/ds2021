@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { sendMessage } from '../../features/messages/messagesSlice'
 import store from '../../store/index'
@@ -6,36 +6,39 @@ import store from '../../store/index'
 const ChatLog = props => {
   const dispatch = useDispatch();
   const chatZoneList = useSelector(state => state.onlineUsers)
-  const chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === props.username)
-  
-  let renderChatLog = ''
-  if (chatZone !== undefined) { 
-    const chatLog = chatZone.chatLog
-    // console.log(chatLog)
-    renderChatLog = chatLog.map(message => (
-      <li key={chatZone.connection.peer}>{message}</li>
-    ))
+  const [log, setlog] = useState([])
+  let chatZone = [];
+  if (props.username != undefined) {
+    chatZone = chatZoneList.find(chatZone => chatZone.connection.peer === props.username);
   } 
-
+  
+  console.log(chatZone)
   useEffect(() => {
     window.addEventListener("mousedown", handleSendMessage);
     return () => {
       window.removeEventListener("mousedown", handleSendMessage);
     }
-  }, [])
+  }, [log])
+  console.log(chatZone)
+  let renderChatLog = ''
+  if (chatZone != undefined) {
+    renderChatLog = chatZone.chatLog.map(item => (
+      <li key={chatZone.connection.peer}>{item.owner}: {item.message}</li>
+    ))
+  } 
+
   const handleSendMessage = (e) => {
     const sendButton = document.getElementById('sendButton');
+    console.log(chatZone)
     if (e.target == sendButton) {
       const message = document.getElementById('messenger').value;
-      console.log(message);
-      // dispatch(sendMessage({
-      //   username: chatZone.connection.peer,
-      //   message: message
-      // }))
-      // chatZone.sendMessage("message");
+      document.getElementById('messenger').value = ''
+      // console.log(chatZone)
       chatZone.test();
       chatZone.sendMessage(message);
-      console.log(chatZone)
+      setlog(chatZone.chatLog)
+      // setlog(chatZone.chatLog)
+      console.log(chatZone.chatLog)
     }
   }
   
